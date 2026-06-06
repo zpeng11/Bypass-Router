@@ -68,6 +68,8 @@ fi
 echo "[init] running tailscale up"
 tailscale up "${UP_ARGS[@]}" "${EXTRA_ARGS_ARRAY[@]}"
 
+tailscale set --auto-update || true
+
 echo "[init] tailscale status:"
 tailscale status || true
 
