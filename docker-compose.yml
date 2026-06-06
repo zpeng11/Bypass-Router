@@ -1,0 +1,63 @@
+services:
+  bypass-netns:
+    build:
+      context: ./router
+    container_name: bypass-netns
+    hostname: ${TS_HOSTNAME}
+    restart: unless-stopped
+    env_file:
+      - .env
+    
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    sysctls:
+      net.ipv4.ip_forward: "1"
+      net.ipv4.conf.all.rp_filter: "0"
+      net.ipv4.conf.default.rp_filter: "0"
+      net.ipv6.conf.all.disable_ipv6: "1"
+      net.ipv6.conf.default.disable_ipv6: "1"
+
+    volumes:
+      - ./tailscale-state:/var/lib/tailscale
+      - ./nft/bypass.nft:/etc/nftables/bypass.nft:ro
+
+    networks:
+      bypass_lan:
+        ipv4_address: ${BYPASS_IP}
+
+  mihomo:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/metacubex/mihomo:latest
+    container_name: mihomo
+    restart: unless-stopped
+    depends_on:
+      - bypass-netns
+
+    # 关键：mihomo 共享 bypass-netns 的网络命名空间
+    network_mode: "service:bypass-netns"
+
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+
+    volumes:
+      - ./mihomo:/root/.config/mihomo
+      - ./resolv.conf:/etc/resolv.conf:ro
+
+    command:
+      - -d
+      - /root/.config/mihomo
+
+networks:
+  bypass_lan:
+    driver: ipvlan
+    driver_opts:
+      parent: ${LAN_PARENT}
+      ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: ${LAN_SUBNET}
+          gateway: ${LAN_GATEWAY}

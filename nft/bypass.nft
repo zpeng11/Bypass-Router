@@ -1,0 +1,54 @@
+flush ruleset
+
+table inet bypass {
+  set bypass_ipv4 {
+    type ipv4_addr
+    flags interval
+    elements = {
+      0.0.0.0/8,
+      10.0.0.0/8,
+      100.64.0.0/10,
+      127.0.0.0/8,
+      169.254.0.0/16,
+      172.16.0.0/12,
+      192.168.0.0/16,
+      224.0.0.0/4,
+      240.0.0.0/4
+    }
+  }
+
+  # TProxy: TCP/UDP 透明代理到 mihomo tproxy-port 7894
+  chain prerouting_tproxy {
+    type filter hook prerouting priority mangle; policy accept;
+
+    # 只处理 LAN 入口和 Tailscale 入口
+    iifname != { "eth0", "tailscale0" } return
+
+    # DNS 不走 TProxy，由 prerouting_dns 链 redirect 到 :53
+    tcp dport 53 return
+    udp dport 53 return
+
+    # 私网、组播、tailnet、保留地址不透明代理
+    ip daddr @bypass_ipv4 return
+
+    # TCP/UDP 透明代理到 mihomo
+    meta l4proto tcp meta mark set 0x1 tproxy to :7894 accept
+    meta l4proto udp meta mark set 0x1 tproxy to :7894 accept
+  }
+
+  # DNS 劫持到 mihomo DNS 53
+  chain prerouting_dns {
+    type nat hook prerouting priority dstnat; policy accept;
+
+    iifname { "eth0", "tailscale0" } tcp dport 53 redirect to :53
+    iifname { "eth0", "tailscale0" } udp dport 53 redirect to :53
+  }
+
+  # 让 tailnet 设备访问 LAN 时，LAN 侧设备看到的来源为旁路由 IP
+  # 如果你不需要 TS_ROUTES 访问内网，可以保留也没问题。
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+
+    ip saddr 100.64.0.0/10 oifname "eth0" masquerade
+  }
+}

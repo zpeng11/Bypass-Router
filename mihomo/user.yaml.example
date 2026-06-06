@@ -1,0 +1,63 @@
+# ===========================================================
+# 代理节点与策略组配置
+# ===========================================================
+#
+# 此文件定义你的代理节点、订阅源和策略组。
+# 端口、DNS、透明代理、分流规则等由系统自动管理，无需在此配置。
+#
+# 必须包含:
+#   proxy-groups:  至少包含 PROXY 和 FINAL 两个策略组
+#
+# 可选包含:
+#   proxies:            手动定义节点（与 proxy-providers 二选一或共存）
+#   proxy-providers:    订阅源（推荐）
+#
+# 支持所有 mihomo 协议: vmess, vless, trojan, ss, hysteria2 等
+# 文档: https://wiki.metacubex.one/config/proxies/
+# ===========================================================
+
+# -----------------------------------------------------------
+# 方式一：订阅源（推荐，大多数用户只需要这个）
+# -----------------------------------------------------------
+
+proxy-providers:
+  my-sub:
+    type: http
+    url: "https://your-subscription-url-here"
+    interval: 3600
+    path: ./providers/my-sub.yaml
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+
+# -----------------------------------------------------------
+# 方式二：手动节点（没有订阅时使用，或与订阅共存）
+# -----------------------------------------------------------
+
+# proxies:
+#   - name: my-node
+#     type: vmess
+#     server: example.com
+#     port: 443
+#     uuid: your-uuid-here
+#     alterId: 0
+#     cipher: auto
+
+# -----------------------------------------------------------
+# 策略组（必填）
+# -----------------------------------------------------------
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    use:                    # 从订阅源引入全部节点
+      - my-sub
+    proxies:                # 手动节点在此列出, 如添加 my-node
+      - DIRECT
+
+  - name: FINAL
+    type: select
+    proxies:
+      - PROXY
+      - DIRECT
