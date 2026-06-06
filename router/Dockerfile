@@ -1,4 +1,4 @@
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/tailscale/tailscale:stable
+FROM ghcr.io/tailscale/tailscale:latest
 
 RUN apk add --no-cache \
     bash \

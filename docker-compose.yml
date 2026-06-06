@@ -32,7 +32,7 @@ services:
         ipv4_address: ${BYPASS_IP}
 
   mihomo:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/metacubex/mihomo:latest
+    image: ghcr.io/metacubex/mihomo:latest
     container_name: mihomo
     restart: unless-stopped
     depends_on:

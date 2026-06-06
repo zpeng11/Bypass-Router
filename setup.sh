@@ -383,7 +383,7 @@ BYPASS_IP=${BYPASS_IP}
 TS_AUTHKEY=${TS_AUTHKEY}
 TS_HOSTNAME=${TS_HOSTNAME}
 TS_ROUTES=${TS_ROUTES}
-TS_EXTRA_ARGS=--advertise-exit-node --accept-dns=false
+TS_EXTRA_ARGS=--advertise-exit-node --accept-dns=false  --stateful-filtering=false
 
 # ===== 其他 =====
 TZ=Asia/Shanghai
