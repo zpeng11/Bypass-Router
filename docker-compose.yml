@@ -25,6 +25,7 @@ services:
     volumes:
       - ./tailscale-state:/var/lib/tailscale
       - ./nft/bypass.nft:/etc/nftables/bypass.nft:ro
+      - ./resolv.conf:/etc/resolv.conf:ro 
 
     networks:
       bypass_lan:
