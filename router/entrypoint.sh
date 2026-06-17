@@ -18,18 +18,42 @@ echo "[init] checking sysctl values"
 echo -n "net.ipv4.ip_forward="
 cat /proc/sys/net/ipv4/ip_forward || true
 
+echo -n "net.ipv4.ip_nonlocal_bind="
+cat /proc/sys/net/ipv4/ip_nonlocal_bind || true
+
+echo -n "net.ipv4.tcp_fwmark_accept="
+cat /proc/sys/net/ipv4/tcp_fwmark_accept || true
+
 echo -n "net.ipv4.conf.all.rp_filter="
 cat /proc/sys/net/ipv4/conf/all/rp_filter || true
 
 echo -n "net.ipv4.conf.default.rp_filter="
 cat /proc/sys/net/ipv4/conf/default/rp_filter || true
 
+echo -n "net.ipv4.conf.all.src_valid_mark="
+cat /proc/sys/net/ipv4/conf/all/src_valid_mark || true
+
+echo -n "net.ipv6.conf.all.disable_ipv6="
+cat /proc/sys/net/ipv6/conf/all/disable_ipv6 || true
+
 echo "[init] installing policy routing for TProxy mark 0x1"
 ip rule add fwmark 0x1 table 100 2>/dev/null || true
 ip route replace local 0.0.0.0/0 dev lo table 100
+if [[ -r /proc/sys/net/ipv6/conf/all/disable_ipv6 ]] \
+   && [[ "$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" == "0" ]]; then
+  ip -6 rule add fwmark 0x1 table 100 2>/dev/null || true
+  ip -6 route replace local ::/0 dev lo table 100
+fi
 
 echo "[init] loading nftables rules"
 nft -f /etc/nftables/bypass.nft
+
+echo "[init] using mihomo DNS as local resolver before tailscaled starts"
+rm -f /etc/resolv.pre-tailscale-backup.conf 2>/dev/null || true
+cat >/etc/resolv.conf <<'RESOLVEOF'
+nameserver 127.0.0.1
+options timeout:1 attempts:2
+RESOLVEOF
 
 echo "[init] starting tailscaled"
 tailscaled \
@@ -42,6 +66,14 @@ TAILSCALED_PID=$!
 echo "[init] waiting for tailscaled"
 for i in $(seq 1 30); do
   if tailscale status >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+echo "[init] waiting for mihomo controller on 127.0.0.1:9090"
+for i in $(seq 1 30); do
+  if curl -fsS --max-time 1 http://127.0.0.1:9090/configs >/dev/null 2>&1; then
     break
   fi
   sleep 1

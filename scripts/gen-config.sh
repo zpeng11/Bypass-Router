@@ -65,6 +65,21 @@ find-process-mode: off
 unified-delay: true
 tcp-concurrent: true
 
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 8080-8880
+    TLS:
+      ports:
+        - 443
+        - 8443
+
 
 # ===== DNS =====
 
@@ -72,22 +87,9 @@ dns:
   enable: true
   listen: 0.0.0.0:53
   ipv6: false
+  respect-rules: true
 
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-
-  fake-ip-filter:
-    - "*.lan"
-    - "localhost"
-    - "+.local"
-    - "+.home.arpa"
-    - "+.msftconnecttest.com"
-    - "+.msftncsi.com"
-    - "time.*.com"
-    - "time.*.gov"
-    - "time.*.edu.cn"
-    - "ntp.*.com"
-    - "ntp.*.com.cn"
+  enhanced-mode: redir-host
 
   default-nameserver:
     - 223.5.5.5
@@ -183,6 +185,10 @@ rules:
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
   - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
   - IP-CIDR,224.0.0.0/4,DIRECT,no-resolve
+  - IP-CIDR6,::1/128,DIRECT,no-resolve
+  - IP-CIDR6,fc00::/7,DIRECT,no-resolve
+  - IP-CIDR6,fe80::/10,DIRECT,no-resolve
+  - IP-CIDR6,ff00::/8,DIRECT,no-resolve
 
   # 广告拦截
   - RULE-SET,reject,REJECT
