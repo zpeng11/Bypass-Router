@@ -9,7 +9,7 @@
 - **透明代理** — LAN 设备只需改网关/DNS，无需安装任何软件
 - **Tailscale 集成** — 远端设备使用 Exit Node 即可获得相同分流能力
 - **自动分流** — 国内流量直连，海外流量走代理，广告拦截
-- **Fake-IP DNS** — 防止 DNS 泄露，减少代理延迟
+- **DNS 劫持与嗅探** — DNS 查询统一交给 mihomo，并结合 Host/SNI 嗅探完成分流
 - **一键部署** — `setup.sh` 自动检测网络环境
 
 ## 架构
@@ -160,7 +160,7 @@ bash scripts/gen-config.sh && docker compose restart mihomo
 
 1. Docker 使用 `ipvlan` L2 模式将容器直接接入 LAN，拥有独立 IP
 2. `nftables` 拦截所有来自 LAN 和 Tailscale 的流量
-3. DNS 查询被劫持到 mihomo 的 Fake-IP DNS（端口 53）
+3. DNS 查询被劫持到 mihomo DNS（端口 53，redir-host 模式）
 4. 其他流量通过 TProxy 透明代理到 mihomo（端口 7894）
 5. mihomo 根据规则决定直连或走代理
 6. 策略路由（fwmark + table 100）确保 TProxy 正确工作
@@ -178,6 +178,10 @@ bash scripts/gen-config.sh && docker compose restart mihomo
 - LAN 内**其他设备**一切正常，不受影响
 
 如果需要从宿主机访问管理面板，可通过 LAN 内其他设备（如手机、笔记本）打开，或在宿主机上添加临时路由（macvlan 同理，需 `ip link` 创建 vlan 接口），一般无需额外处理。
+
+### 公网 IPv6 出口
+
+本项目不提供公网 IPv6 代理出口。Tailscale 会为节点分配 tailnet IPv6 地址，容器会保留该能力；但来自 LAN 或 Tailscale exit node 的公网 IPv6 访问会被快速拒绝，客户端应回退到 IPv4。
 
 ### 国内部署
 

@@ -36,7 +36,7 @@ table inet bypass {
     # 只处理 LAN 入口和 Tailscale 入口
     iifname != { "eth0", "tailscale0" } return
 
-    # DNS 不走 TProxy，由 prerouting_dns 链 redirect 到 :53
+    # DNS 不走 TProxy，由 prerouting_nat 链 redirect 到 :53
     tcp dport 53 return
     udp dport 53 return
 

@@ -36,14 +36,9 @@ cat /proc/sys/net/ipv4/conf/all/src_valid_mark || true
 echo -n "net.ipv6.conf.all.disable_ipv6="
 cat /proc/sys/net/ipv6/conf/all/disable_ipv6 || true
 
-echo "[init] installing policy routing for TProxy mark 0x1"
+echo "[init] installing IPv4 policy routing for TProxy mark 0x1"
 ip rule add fwmark 0x1 table 100 2>/dev/null || true
 ip route replace local 0.0.0.0/0 dev lo table 100
-if [[ -r /proc/sys/net/ipv6/conf/all/disable_ipv6 ]] \
-   && [[ "$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" == "0" ]]; then
-  ip -6 rule add fwmark 0x1 table 100 2>/dev/null || true
-  ip -6 route replace local ::/0 dev lo table 100
-fi
 
 echo "[init] loading nftables rules"
 nft -f /etc/nftables/bypass.nft
