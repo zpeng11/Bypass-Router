@@ -61,6 +61,13 @@ ipv6: false
 
 external-controller: 0.0.0.0:9090
 
+# 面板静态托管，访问 http://<旁路由IP>:9090/ui/
+# 首次启动时 mihomo 自动下载 zip 并解压（走自身分流规则），文件落在 mihomo/ui/
+# 注：mihomo 自动下载只支持 zip 格式，zashboard 官方以 zip 发布
+external-ui: ui
+external-ui-name: zashboard
+external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
+
 find-process-mode: off
 unified-delay: true
 tcp-concurrent: true

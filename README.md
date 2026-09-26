@@ -22,7 +22,10 @@
   │  │ Tailscale │      │     mihomo       │    │
   │  │(exit node)│      │ tproxy :7894     │    │
   │  │           │      │ DNS    :53       │    │
-  │  └─────┬─────┘      │ mixed  :7890     │    │
+  │  │           │      │ ctrl   :9090     │    │
+  │  └─────┬─────┘      └────────┬─────────┘    │
+  │        │            ┌────────┴─────────┐    │
+  │        │            │ nginx ui :80     │    │
   │        │            └────────┬─────────┘    │
   │  ┌─────┴─────────────────────┴─────────┐    │
   │  │  共享网络命名空间 (network namespace) │   │
@@ -34,7 +37,7 @@
 
 ```
 
-两个容器共享网络命名空间，nftables 同时拦截 LAN 和 Tailscale 流量，统一交给 mihomo 处理。
+三个容器共享网络命名空间：`bypass-netns`（Tailscale + nftables）、`mihomo`（代理内核）、`ui`（nginx 面板入口）。nftables 同时拦截 LAN 和 Tailscale 流量，统一交给 mihomo 处理。
 
 ## 快速开始
 
@@ -69,11 +72,11 @@ bash setup.sh
 
 #### 管理面板
 
-访问 `http://<旁路由IP>:9090` 可查看 mihomo 的实时状态。
+直接访问 `http://<旁路由IP>` 即可打开面板——`ui` 容器（nginx）在 80 端口托管 zashboard 静态文件，并把 API 请求反代给 mihomo。
 
-推荐面板：[yacd](http://yacd.haishan.me) 或 [metacubexd](https://d.metacubex.one)
+mihomo 原生入口依然可用：`http://<旁路由IP>:9090/ui/`（也可用 [yacd](http://yacd.haishan.me)、[metacubexd](https://d.metacubex.one) 等外部面板连接 `http://<旁路由IP>:9090`）。
 
-> **注意：** 管理面板未设置认证（`secret`），这是有意为之的设计——旁路由部署在内网可信环境中，局域网内设备可直接访问，降低使用门槛。如果你的网络环境不可信，请在 `mihomo/config.yaml` 中添加 `secret` 字段，或通过防火墙限制 9090 端口的访问范围。
+> **注意：** 管理面板未设置认证（`secret`），这是有意为之的设计——旁路由部署在内网可信环境中，局域网内设备可直接访问，降低使用门槛。如果你的网络环境不可信，请在 `mihomo/config.yaml` 中添加 `secret` 字段，或通过防火墙限制 80/9090 端口的访问范围。
 
 ## 配置
 
@@ -146,6 +149,9 @@ docker compose logs -f bypass-netns
 # 查看 mihomo 日志
 docker compose logs -f mihomo
 
+# 查看面板（ui）日志
+docker compose logs -f ui
+
 # 停止
 docker compose down
 
@@ -174,7 +180,7 @@ bash scripts/gen-config.sh && docker compose restart mihomo
 具体影响：
 
 - 宿主机**不能**将旁路由设为自己的网关/DNS
-- 宿主机**不能**直接访问旁路由 IP（包括管理面板 `:9090`）
+- 宿主机**不能**直接访问旁路由 IP（包括管理面板 `:80` 和 `:9090`）
 - LAN 内**其他设备**一切正常，不受影响
 
 如果需要从宿主机访问管理面板，可通过 LAN 内其他设备（如手机、笔记本）打开，或在宿主机上添加临时路由（macvlan 同理，需 `ip link` 创建 vlan 接口），一般无需额外处理。
@@ -190,6 +196,7 @@ bash scripts/gen-config.sh && docker compose restart mihomo
 |------|----------|----------|
 | 拉取 Tailscale 镜像 | `swr.cn-north-4.myhuaweicloud.com` | ✅ |
 | 拉取 mihomo 镜像 | `swr.cn-north-4.myhuaweicloud.com` | ✅ |
+| 拉取 nginx 镜像 | `swr.cn-north-4.myhuaweicloud.com` | ✅ |
 | 构建 router 镜像 (apk) | Alpine 仓库 | ✅ |
 | Tailscale 登录 | `controlplane.tailscale.com` | ⚠️ 官方服务很慢但可达 |
 | GH CDN下载分流规则 | `testingcf.jsdelivr.net` | ✅ |
@@ -204,6 +211,8 @@ bypass-router/
 ├── setup.sh                     # 一键安装向导
 ├── docker-compose.yml           # 容器编排
 ├── resolv.conf                  # 容器上游 DNS
+├── nginx/
+│   └── default.conf             # ui 容器：面板静态托管 + API 反代
 ├── router/
 │   ├── Dockerfile               # Tailscale 路由器镜像
 │   └── entrypoint.sh            # 启动脚本

@@ -9,6 +9,7 @@ mihomo/config.yaml
 mihomo/cache.db
 mihomo/rule-set/
 mihomo/providers/
+mihomo/ui/
 tailscale-state/
 
 # Claude Code agent

@@ -463,7 +463,8 @@ else
 fi
 echo ""
 echo -e "  ${BOLD}管理面板:${NC}"
-echo "    http://${BYPASS_IP}:9090"
+echo "    http://${BYPASS_IP}            (推荐入口，直接打开 zashboard)"
+echo "    http://${BYPASS_IP}:9090/ui/   (mihomo 原生入口)"
 echo ""
 echo -e "  ${BOLD}常用命令:${NC}"
 echo "    查看日志:   docker compose logs -f"

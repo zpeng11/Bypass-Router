@@ -59,6 +59,21 @@ services:
       - -d
       - /root/.config/mihomo
 
+  ui:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/nginx:alpine
+    container_name: bypass-ui
+    restart: unless-stopped
+    depends_on:
+      - bypass-netns
+
+    # 同样共享 bypass-netns 的网络命名空间，占用旁路由 IP 的 80 端口
+    network_mode: "service:bypass-netns"
+
+    volumes:
+      # zashboard 静态文件（mihomo 下载/升级 UI 时原地更新）
+      - ./mihomo/ui/zashboard:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
 networks:
   bypass_lan:
     driver: ipvlan
